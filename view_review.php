@@ -80,12 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-8 offset-md-2">
+        <div class="col-lg-8 offset-lg-2 col-md-10 offset-md-1">
             <!-- 评价详情 -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><?php echo htmlspecialchars($review['restaurant_name']); ?></h5>
+                    <h5 class="mb-0 fw-bold"><?php echo htmlspecialchars($review['restaurant_name']); ?></h5>
                     <span class="badge <?php echo $review['rating'] == '好吃' ? 'bg-success' : 'bg-danger'; ?>">
+                        <?php if ($review['rating'] == '好吃'): ?>
+                            <i class="bi bi-emoji-smile me-1"></i>
+                        <?php else: ?>
+                            <i class="bi bi-emoji-frown me-1"></i>
+                        <?php endif; ?>
                         <?php echo htmlspecialchars($review['rating']); ?>
                     </span>
                 </div>
@@ -96,15 +101,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <button type="button" class="btn btn-sm btn-outline-secondary vote-btn <?php echo $user_vote_type === 'agree' ? 'active' : ''; ?>" 
                                     data-review-id="<?php echo $review['id']; ?>" 
                                     data-vote-type="agree">
-                                👍 <span class="agree-count"><?php echo $review['agree_count']; ?></span>
+                                <i class="bi bi-hand-thumbs-up me-1"></i> <span class="agree-count"><?php echo $review['agree_count']; ?></span>
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-secondary vote-btn <?php echo $user_vote_type === 'disagree' ? 'active' : ''; ?>" 
                                     data-review-id="<?php echo $review['id']; ?>" 
                                     data-vote-type="disagree">
-                                👎 <span class="disagree-count"><?php echo $review['disagree_count']; ?></span>
+                                <i class="bi bi-hand-thumbs-down me-1"></i> <span class="disagree-count"><?php echo $review['disagree_count']; ?></span>
                             </button>
                         </div>
-                        <small class="text-muted"><?php echo formatDateTime($review['created_at']); ?></small>
+                        <small class="text-muted"><i class="bi bi-clock me-1"></i> <?php echo formatDateTime($review['created_at']); ?></small>
                     </div>
                 </div>
             </div>
@@ -112,44 +117,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- 评论表单 -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">添加评论</h5>
+                    <h5 class="mb-0"><i class="bi bi-chat-right-text me-2"></i>添加评论</h5>
                 </div>
                 <div class="card-body">
                     <?php if ($error): ?>
-                        <div class="alert alert-danger"><?php echo $error; ?></div>
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <?php echo $error; ?>
+                        </div>
                     <?php endif; ?>
                     
                     <?php if ($success): ?>
-                        <div class="alert alert-success"><?php echo $success; ?></div>
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <?php echo $success; ?>
+                        </div>
                     <?php endif; ?>
                     
                     <form method="POST" action="<?php echo $_SERVER['REQUEST_URI']; ?>">
                         <div class="mb-3">
-                            <textarea class="form-control" id="content" name="content" rows="3" required><?php echo isset($content) ? htmlspecialchars($content) : ''; ?></textarea>
+                            <textarea class="form-control" id="content" name="content" rows="3" placeholder="请输入您的评论..." required><?php echo isset($content) ? htmlspecialchars($content) : ''; ?></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary">提交评论</button>
+                        <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="bi bi-send me-1"></i> 提交评论
+                        </button>
+                        </div>
                     </form>
                 </div>
             </div>
             
             <!-- 评论列表 -->
-            <h4 class="mb-3">评论 (<?php echo count($comments); ?>)</h4>
-            
-            <?php if (count($comments) > 0): ?>
-                <?php foreach ($comments as $comment): ?>
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <p class="card-text"><?php echo nl2br(htmlspecialchars($comment['content'])); ?></p>
-                            <small class="text-muted"><?php echo formatDateTime($comment['created_at']); ?></small>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-chat-square-dots me-2"></i>评论</h5>
+                    <span class="badge bg-primary"><?php echo count($comments); ?></span>
+                </div>
+                <div class="card-body p-0">
+                    <?php if (count($comments) > 0): ?>
+                        <ul class="list-group list-group-flush">
+                            <?php foreach ($comments as $comment): ?>
+                                <li class="list-group-item p-3">
+                                    <p class="mb-0"><?php echo nl2br(htmlspecialchars($comment['content'])); ?></p>
+                                    <div class="d-flex justify-content-end mb-1">
+                                        <small class="text-muted"><i class="bi bi-clock me-1"></i> <?php echo formatDateTime($comment['created_at']); ?></small>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <div class="text-center py-4">
+                            <i class="bi bi-chat-square me-2 text-muted"></i>
+                            <span class="text-muted">暂无评论</span>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="alert alert-info">暂无评论</div>
-            <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
             
-            <div class="mt-4">
-                <a href="<?php echo $return_url; ?>" class="btn btn-secondary">返回首页</a>
+            <div class="mt-4 d-flex justify-content-end">
+                <a href="<?php echo $return_url; ?>" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> 返回首页
+                </a>
             </div>
         </div>
     </div>
