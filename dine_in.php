@@ -32,7 +32,7 @@ if (!in_array($sort, ['date', 'likes', 'comments'])) {
 $perPage = 20;
 
 // 获取评价列表
-$result = getReviews($search, $rating, $page, $perPage, $sort);
+$result = getDineInReviews($search, $rating, $page, $perPage, $sort);
 $reviews = $result['reviews'];
 $totalPages = $result['totalPages'];
 $total = $result['total'];
@@ -40,7 +40,7 @@ $total = $result['total'];
 // 处理"今天吃什么"功能
 $randomRestaurant = null;
 if (isset($_GET['random'])) {
-    $randomRestaurant = getRandomGoodRestaurant();
+    $randomRestaurant = getRandomGoodDineInRestaurant();
 }
 
 // 生成排序URL参数
@@ -62,7 +62,7 @@ function getSortUrl($sort_type) {
     
     $params[] = 'sort=' . $sort_type;
     
-    return 'index.php?' . implode('&', $params);
+    return 'dine_in.php?' . implode('&', $params);
 }
 
 // 生成分页URL参数
@@ -82,7 +82,7 @@ function getPaginationUrl($page_num) {
         $params[] = 'sort=' . $sort;
     }
     
-    return 'index.php?' . implode('&', $params);
+    return 'dine_in.php?' . implode('&', $params);
 }
 
 // 生成分类选项卡URL
@@ -102,7 +102,7 @@ function getTabUrl($tab_rating) {
         $params[] = 'sort=' . $sort;
     }
     
-    return 'index.php' . (empty($params) ? '' : '?' . implode('&', $params));
+    return 'dine_in.php' . (empty($params) ? '' : '?' . implode('&', $params));
 }
 
 // 生成评价详情URL
@@ -126,7 +126,7 @@ function getReviewDetailUrl($review_id) {
         $params[] = 'page=' . $page;
     }
     
-    return 'view_review.php?' . implode('&', $params);
+    return 'view_dine_in_review.php?' . implode('&', $params);
 }
 ?>
 
@@ -136,7 +136,7 @@ function getReviewDetailUrl($review_id) {
             <div class="col-md-8 offset-md-2">
                 <div class="card">
                     <div class="card-header bg-success text-white">
-                        <h4 class="mb-0"></i>今天吃什么？就吃这个！</h4>
+                        <h4 class="mb-0"></i>今天去哪聚餐？就去这家！</h4>
                     </div>
                     <div class="card-body">
                         <h3 class="text-center"><?php echo htmlspecialchars($randomRestaurant['restaurant_name']); ?></h3>
@@ -145,7 +145,7 @@ function getReviewDetailUrl($review_id) {
                             <a href="<?php echo getReviewDetailUrl($randomRestaurant['id']); ?>" class="btn btn-sm btn-primary">
                                 <i class="bi bi-eye me-1"></i> 查看详情
                             </a>
-                            <a href="<?php echo $search || $rating || $sort !== 'date' ? getTabUrl($rating) : 'index.php'; ?>" class="btn btn-sm btn-outline-secondary">
+                            <a href="<?php echo $search || $rating || $sort !== 'date' ? getTabUrl($rating) : 'dine_in.php'; ?>" class="btn btn-sm btn-outline-secondary">
                                 <i class="bi bi-arrow-left me-1"></i> 返回列表
                             </a>
                         </div>
@@ -156,12 +156,12 @@ function getReviewDetailUrl($review_id) {
     <?php else: ?>
         <div class="row mb-4">
             <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
-                <form action="index.php" method="GET" class="search-form">
+                <form action="dine_in.php" method="GET" class="search-form">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0">
                             <i class="bi bi-search text-primary"></i>
                         </span>
-                        <input type="text" class="form-control border-start-0" name="search" placeholder="搜索商家..." value="<?php echo htmlspecialchars($search); ?>">
+                        <input type="text" class="form-control border-start-0" name="search" placeholder="搜索餐厅..." value="<?php echo htmlspecialchars($search); ?>">
                         <?php if (!empty($rating)): ?>
                             <input type="hidden" name="rating" value="<?php echo htmlspecialchars($rating); ?>">
                         <?php endif; ?>
@@ -178,16 +178,16 @@ function getReviewDetailUrl($review_id) {
             <div class="col-12 text-center">
                 <div class="d-flex flex-column flex-md-row justify-content-center">
                     <div class="d-flex justify-content-center">
-                        <a href="add_review.php" class="btn btn-success">
-                            <i class="bi bi-plus-circle me-1"></i> 添加外卖评价
+                        <a href="add_dine_in_review.php" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-1"></i> 添加聚餐评价
                         </a>
                         <a href="?random=1" class="btn btn-info ms-2">
-                            <i class="bi bi-shuffle me-1"></i> 今天吃什么？
+                            <i class="bi bi-shuffle me-1"></i> 今天去哪聚餐？
                         </a>
                     </div>
                     <div class="mt-2 mt-md-0">
-                        <a href="dine_in.php" class="btn btn-primary ms-md-2">
-                            <i class="bi bi-shop me-1"></i> 切换到聚餐评价
+                        <a href="index.php" class="btn btn-outline-primary ms-md-2">
+                            <i class="bi bi-box-arrow-right me-1"></i> 切换到外卖评价
                         </a>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ function getReviewDetailUrl($review_id) {
                     <?php foreach ($reviews as $review): ?>
                         <?php 
                         // 检查用户是否已投票
-                        $current_vote = getCurrentVote($review['id'], $voter_id);
+                        $current_vote = getCurrentDineInVote($review['id'], $voter_id);
                         $user_vote_type = $current_vote ? $current_vote['vote_type'] : null;
                         ?>
                         <div class="card mb-3 review-card">
@@ -261,58 +261,56 @@ function getReviewDetailUrl($review_id) {
                                 </span>
                             </div>
                             <div class="card-body">
-                                <p class="card-text"><?php echo nl2br(htmlspecialchars($review['content'])); ?></p>
+                                <p class="card-text"><?php echo nl2br(htmlspecialchars(mb_substr($review['content'], 0, 100) . (mb_strlen($review['content']) > 100 ? '...' : ''))); ?></p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary vote-btn <?php echo $user_vote_type === 'agree' ? 'active' : ''; ?>" 
-                                                data-review-id="<?php echo $review['id']; ?>" 
-                                                data-vote-type="agree">
-                                            <i class="bi bi-hand-thumbs-up me-1"></i> <span class="agree-count"><?php echo $review['agree_count']; ?></span>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary vote-btn <?php echo $user_vote_type === 'disagree' ? 'active' : ''; ?>" 
-                                                data-review-id="<?php echo $review['id']; ?>" 
-                                                data-vote-type="disagree">
-                                            <i class="bi bi-hand-thumbs-down me-1"></i> <span class="disagree-count"><?php echo $review['disagree_count']; ?></span>
-                                        </button>
+                                        <a href="<?php echo getReviewDetailUrl($review['id']); ?>" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i> 查看详情
+                                        </a>
                                     </div>
-                                    <small class="text-muted"><i class="bi bi-clock me-1"></i> <?php echo formatDateTime($review['created_at']); ?></small>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="bi bi-hand-thumbs-up me-1 <?php echo $user_vote_type === 'agree' ? 'text-primary' : 'text-muted'; ?>"></i>
+                                            <span class="text-muted"><?php echo $review['agree_count']; ?></span>
+                                        </div>
+                                        <div class="me-3">
+                                            <i class="bi bi-hand-thumbs-down me-1 <?php echo $user_vote_type === 'disagree' ? 'text-danger' : 'text-muted'; ?>"></i>
+                                            <span class="text-muted"><?php echo $review['disagree_count']; ?></span>
+                                        </div>
+                                        <div>
+                                            <i class="bi bi-chat-dots me-1 text-muted"></i>
+                                            <span class="text-muted"><?php echo $review['comment_count']; ?></span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="card-footer d-flex justify-content-end align-items-center">
-                                <a href="<?php echo getReviewDetailUrl($review['id']); ?>" class="text-decoration-none">
-                                    <i class="bi bi-chat-dots me-1"></i> 查看 <?php echo $review['comment_count']; ?> 条评论
-                                </a>
+                            <div class="card-footer text-muted small">
+                                <i class="bi bi-clock me-1"></i> <?php echo formatDateTime($review['created_at']); ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
                     
-                    <!-- 分页导航 -->
+                    <!-- 分页 -->
                     <?php if ($totalPages > 1): ?>
-                        <nav aria-label="Page navigation">
+                        <nav aria-label="Page navigation" class="mt-4">
                             <ul class="pagination justify-content-center">
                                 <?php if ($page > 1): ?>
                                     <li class="page-item">
-                                        <a class="page-link" href="<?php echo getPaginationUrl(1); ?>" aria-label="首页">
-                                            <i class="bi bi-chevron-double-left"></i>
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="<?php echo getPaginationUrl($page - 1); ?>" aria-label="上一页">
-                                            <i class="bi bi-chevron-left"></i>
+                                        <a class="page-link" href="<?php echo getPaginationUrl($page - 1); ?>" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
                                         </a>
                                     </li>
                                 <?php endif; ?>
                                 
                                 <?php
-                                // 显示页码，最多显示5个
                                 $startPage = max(1, $page - 2);
                                 $endPage = min($totalPages, $startPage + 4);
                                 if ($endPage - $startPage < 4) {
                                     $startPage = max(1, $endPage - 4);
                                 }
-                                
-                                for ($i = $startPage; $i <= $endPage; $i++):
                                 ?>
+                                
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                                     <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
                                         <a class="page-link" href="<?php echo getPaginationUrl($i); ?>"><?php echo $i; ?></a>
                                     </li>
@@ -320,13 +318,8 @@ function getReviewDetailUrl($review_id) {
                                 
                                 <?php if ($page < $totalPages): ?>
                                     <li class="page-item">
-                                        <a class="page-link" href="<?php echo getPaginationUrl($page + 1); ?>" aria-label="下一页">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                    <li class="page-item">
-                                        <a class="page-link" href="<?php echo getPaginationUrl($totalPages); ?>" aria-label="末页">
-                                            <i class="bi bi-chevron-double-right"></i>
+                                        <a class="page-link" href="<?php echo getPaginationUrl($page + 1); ?>" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
                                         </a>
                                     </li>
                                 <?php endif; ?>
@@ -334,14 +327,8 @@ function getReviewDetailUrl($review_id) {
                         </nav>
                     <?php endif; ?>
                 <?php else: ?>
-                    <div class="alert alert-info text-center py-4">
-                        <i class="bi bi-info-circle fs-4 mb-3 d-block"></i>
-                        <p class="mb-0"><?php echo $search ? '没有找到相关商家的评价' : '暂无评价'; ?></p>
-                        <?php if ($search): ?>
-                            <a href="index.php" class="btn btn-outline-primary mt-3">
-                                <i class="bi bi-arrow-left me-1"></i> 返回全部评价
-                            </a>
-                        <?php endif; ?>
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle me-2"></i> 暂无聚餐评价
                     </div>
                 <?php endif; ?>
             </div>
@@ -349,65 +336,4 @@ function getReviewDetailUrl($review_id) {
     <?php endif; ?>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 点赞和踩的功能
-    const voteButtons = document.querySelectorAll('.vote-btn');
-    voteButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const reviewId = this.getAttribute('data-review-id');
-            const voteType = this.getAttribute('data-vote-type');
-            const isActive = this.classList.contains('active');
-            
-            fetch('api/vote.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    review_id: reviewId,
-                    vote_type: voteType
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 更新当前按钮计数
-                    const countElement = this.querySelector(voteType === 'agree' ? '.agree-count' : '.disagree-count');
-                    countElement.textContent = data.count;
-                    
-                    // 处理按钮状态
-                    if (data.status === 'removed') {
-                        // 取消投票
-                        this.classList.remove('active');
-                    } else if (data.status === 'added') {
-                        // 新增投票
-                        this.classList.add('active');
-                    } else if (data.status === 'updated') {
-                        // 更新投票（从一种类型切换到另一种类型）
-                        this.classList.add('active');
-                        
-                        // 找到另一个按钮并移除active状态
-                        const otherType = voteType === 'agree' ? 'disagree' : 'agree';
-                        const otherButton = document.querySelector(`.vote-btn[data-review-id="${reviewId}"][data-vote-type="${otherType}"]`);
-                        if (otherButton) {
-                            otherButton.classList.remove('active');
-                            // 更新另一个按钮的计数
-                            const otherCountElement = otherButton.querySelector(`.${otherType}-count`);
-                            otherCountElement.textContent = data.other_count;
-                        }
-                    }
-                } else {
-                    alert(data.message || '操作失败，请稍后再试');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('发生错误，请稍后再试');
-            });
-        });
-    });
-});
-</script>
-
-<?php include 'includes/footer.php'; ?> 
+<?php include 'includes/footer.php'; ?>

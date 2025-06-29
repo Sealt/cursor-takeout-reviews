@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo isset($pageTitle) ? $pageTitle : '外卖助手'; ?></title>
+    <title><?php echo isset($pageTitle) ? $pageTitle : '西电杭美食助手'; ?></title>
     <!-- Bootstrap CSS -->
     <link href="<?php echo getBaseUrl(); ?>assets/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -267,7 +267,7 @@ $siteStats = getSiteStats();
 ?>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="<?php echo getBaseUrl(); ?>index.php">外卖助手</a>
+            <a class="navbar-brand" href="<?php echo getBaseUrl(); ?>index.php">西电杭美食助手</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

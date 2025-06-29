@@ -74,6 +74,45 @@ if ($isLoggedIn && isset($_GET['action']) && isset($_GET['id'])) {
         header('Location: index.php?view_comments=' . $id . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
         exit;
     }
+    // 聚餐评价管理操作
+    elseif ($action === 'hide_dine_in') {
+        updateDineInReviewVisibility($id, 0);
+    } elseif ($action === 'show_dine_in') {
+        updateDineInReviewVisibility($id, 1);
+    } elseif ($action === 'delete_dine_in_review') {
+        softDeleteDineInReview($id);
+        // 重定向以避免刷新页面时重复删除
+        header('Location: index.php?type=dine_in' . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
+        exit;
+    } elseif ($action === 'restore_dine_in_review') {
+        restoreDineInReview($id);
+        // 重定向以避免刷新页面时重复操作
+        header('Location: index.php?type=dine_in' . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
+        exit;
+    } elseif ($action === 'hard_delete_dine_in_review') {
+        hardDeleteDineInReview($id);
+        // 重定向以避免刷新页面时重复删除
+        header('Location: index.php?type=dine_in' . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
+        exit;
+    } elseif ($action === 'delete_dine_in_comment' && isset($_GET['comment_id'])) {
+        $comment_id = (int)$_GET['comment_id'];
+        softDeleteDineInComment($comment_id);
+        // 重定向以避免刷新页面时重复删除
+        header('Location: index.php?view_dine_in_comments=' . $id . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
+        exit;
+    } elseif ($action === 'restore_dine_in_comment' && isset($_GET['comment_id'])) {
+        $comment_id = (int)$_GET['comment_id'];
+        restoreDineInComment($comment_id);
+        // 重定向以避免刷新页面时重复操作
+        header('Location: index.php?view_dine_in_comments=' . $id . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
+        exit;
+    } elseif ($action === 'hard_delete_dine_in_comment' && isset($_GET['comment_id'])) {
+        $comment_id = (int)$_GET['comment_id'];
+        hardDeleteDineInComment($comment_id);
+        // 重定向以避免刷新页面时重复删除
+        header('Location: index.php?view_dine_in_comments=' . $id . (isset($_GET['show_deleted']) ? '&show_deleted=1' : ''));
+        exit;
+    }
 }
 
 $pageTitle = "后台管理";
@@ -81,13 +120,17 @@ include '../includes/header.php';
 
 // 如果已登录，获取所有评价（包括隐藏的）
 $reviews = [];
+$dine_in_reviews = [];
 $comments = [];
+$dine_in_comments = [];
 $viewingComments = false;
+$viewingDineInComments = false;
 $currentReviewId = 0;
 $showDeleted = false;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $perPage = 20;
+$type = isset($_GET['type']) ? $_GET['type'] : 'takeout';
 
 if ($isLoggedIn) {
     if (isset($_GET['view_comments'])) {
@@ -95,12 +138,25 @@ if ($isLoggedIn) {
         $showDeleted = isset($_GET['show_deleted']) && $_GET['show_deleted'] == 1;
         $comments = getAllCommentsByReviewId($currentReviewId, $showDeleted);
         $viewingComments = true;
+    } elseif (isset($_GET['view_dine_in_comments'])) {
+        $currentReviewId = (int)$_GET['view_dine_in_comments'];
+        $showDeleted = isset($_GET['show_deleted']) && $_GET['show_deleted'] == 1;
+        $dine_in_comments = getAllDineInCommentsByReviewId($currentReviewId, $showDeleted);
+        $viewingDineInComments = true;
     } else {
         $showDeleted = isset($_GET['show_deleted']) && $_GET['show_deleted'] == 1;
-        $result = getAllReviews(true, $showDeleted, $page, $perPage);
-        $reviews = $result['reviews'];
-        $totalPages = $result['totalPages'];
-        $total = $result['total'];
+        
+        if ($type === 'dine_in') {
+            $result = getAllDineInReviews(true, $showDeleted, $page, $perPage);
+            $dine_in_reviews = $result['reviews'];
+            $totalPages = $result['totalPages'];
+            $total = $result['total'];
+        } else {
+            $result = getAllReviews(true, $showDeleted, $page, $perPage);
+            $reviews = $result['reviews'];
+            $totalPages = $result['totalPages'];
+            $total = $result['total'];
+        }
     }
 }
 ?>
@@ -130,7 +186,7 @@ if ($isLoggedIn) {
                         <!-- 管理员已登录 -->
                         <div class="d-flex justify-content-between mb-4">
                             <?php if ($viewingComments): ?>
-                                <h5>评论管理 - 评价 #<?php echo $currentReviewId; ?></h5>
+                                <h5>评论管理 - 外卖评价 #<?php echo $currentReviewId; ?></h5>
                                 <div>
                                     <?php if ($showDeleted): ?>
                                         <a href="?view_comments=<?php echo $currentReviewId; ?>" class="btn btn-sm btn-info">隐藏已删除评论</a>
@@ -140,13 +196,30 @@ if ($isLoggedIn) {
                                     <a href="index.php<?php echo $showDeleted ? '?show_deleted=1' : ''; ?>" class="btn btn-sm btn-secondary">返回评价列表</a>
                                     <a href="?action=logout" class="btn btn-sm btn-danger">退出登录</a>
                                 </div>
-                            <?php else: ?>
-                                <h5>评价管理</h5>
+                            <?php elseif ($viewingDineInComments): ?>
+                                <h5>评论管理 - 聚餐评价 #<?php echo $currentReviewId; ?></h5>
                                 <div>
                                     <?php if ($showDeleted): ?>
-                                        <a href="index.php" class="btn btn-sm btn-info">隐藏已删除评价</a>
+                                        <a href="?view_dine_in_comments=<?php echo $currentReviewId; ?>" class="btn btn-sm btn-info">隐藏已删除评论</a>
                                     <?php else: ?>
-                                        <a href="?show_deleted=1" class="btn btn-sm btn-info">显示已删除评价</a>
+                                        <a href="?view_dine_in_comments=<?php echo $currentReviewId; ?>&show_deleted=1" class="btn btn-sm btn-info">显示已删除评论</a>
+                                    <?php endif; ?>
+                                    <a href="index.php?type=dine_in<?php echo $showDeleted ? '&show_deleted=1' : ''; ?>" class="btn btn-sm btn-secondary">返回评价列表</a>
+                                    <a href="?action=logout" class="btn btn-sm btn-danger">退出登录</a>
+                                </div>
+                            <?php else: ?>
+                                <h5><?php echo $type === 'dine_in' ? '聚餐' : '外卖'; ?>评价管理</h5>
+                                <div>
+                                    <?php if ($type === 'dine_in'): ?>
+                                        <a href="index.php" class="btn btn-sm btn-primary">切换到外卖评价</a>
+                                    <?php else: ?>
+                                        <a href="index.php?type=dine_in" class="btn btn-sm btn-primary">切换到聚餐评价</a>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ($showDeleted): ?>
+                                        <a href="index.php<?php echo $type === 'dine_in' ? '?type=dine_in' : ''; ?>" class="btn btn-sm btn-info">隐藏已删除评价</a>
+                                    <?php else: ?>
+                                        <a href="?show_deleted=1<?php echo $type === 'dine_in' ? '&type=dine_in' : ''; ?>" class="btn btn-sm btn-info">显示已删除评价</a>
                                     <?php endif; ?>
                                     <a href="?action=logout" class="btn btn-sm btn-danger">退出登录</a>
                                 </div>
@@ -196,8 +269,172 @@ if ($isLoggedIn) {
                                     <?php endif; ?>
                                 </tbody>
                             </table>
+                        <?php elseif ($viewingDineInComments): ?>
+                            <!-- 聚餐评论列表 -->
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>内容</th>
+                                        <th>创建时间</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($dine_in_comments as $comment): ?>
+                                        <tr class="<?php echo $comment['is_deleted'] ? 'table-secondary' : ''; ?>">
+                                            <td><?php echo $comment['id']; ?></td>
+                                            <td><?php echo htmlspecialchars(substr($comment['content'], 0, 100)) . (strlen($comment['content']) > 100 ? '...' : ''); ?></td>
+                                            <td><?php echo formatDateTime($comment['created_at']); ?></td>
+                                            <td><?php echo $comment['is_deleted'] ? '已删除' : '正常'; ?></td>
+                                            <td>
+                                                <?php if ($comment['is_deleted']): ?>
+                                                    <a href="?action=restore_dine_in_comment&id=<?php echo $currentReviewId; ?>&comment_id=<?php echo $comment['id']; ?>&show_deleted=<?php echo $showDeleted ? '1' : '0'; ?>" 
+                                                       class="btn btn-sm btn-success"
+                                                       onclick="return confirm('确定要恢复这条评论吗？')">恢复</a>
+                                                    <a href="?action=hard_delete_dine_in_comment&id=<?php echo $currentReviewId; ?>&comment_id=<?php echo $comment['id']; ?>&show_deleted=<?php echo $showDeleted ? '1' : '0'; ?>" 
+                                                       class="btn btn-sm btn-danger"
+                                                       onclick="return confirm('确定要永久删除这条评论吗？此操作不可恢复！')">永久删除</a>
+                                                <?php else: ?>
+                                                    <a href="?action=delete_dine_in_comment&id=<?php echo $currentReviewId; ?>&comment_id=<?php echo $comment['id']; ?>&show_deleted=<?php echo $showDeleted ? '1' : '0'; ?>" 
+                                                       class="btn btn-sm btn-warning"
+                                                       onclick="return confirm('确定要删除这条评论吗？')">删除</a>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    
+                                    <?php if (empty($dine_in_comments)): ?>
+                                        <tr>
+                                            <td colspan="5" class="text-center">暂无评论数据</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        <?php elseif ($type === 'dine_in'): ?>
+                            <!-- 聚餐评价列表 -->
+                            <?php if (!empty($dine_in_reviews)): ?>
+                                <div class="mb-3">
+                                    <p class="text-muted">共 <?php echo $total; ?> 条评价，当前第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</p>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>餐厅名称</th>
+                                        <th>评价</th>
+                                        <th>内容预览</th>
+                                        <th>赞同/反对</th>
+                                        <th>评论数</th>
+                                        <th>创建时间</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($dine_in_reviews as $review): ?>
+                                        <tr class="<?php echo !$review['is_visible'] ? 'table-secondary' : ($review['is_deleted'] ? 'table-danger' : ''); ?>">
+                                            <td><?php echo $review['id']; ?></td>
+                                            <td><?php echo htmlspecialchars($review['restaurant_name']); ?></td>
+                                            <td>
+                                                <span class="badge <?php echo $review['rating'] == '好吃' ? 'bg-success' : 'bg-danger'; ?>">
+                                                    <?php echo htmlspecialchars($review['rating']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo htmlspecialchars(substr($review['content'], 0, 30)) . (strlen($review['content']) > 30 ? '...' : ''); ?></td>
+                                            <td><?php echo $review['agree_count']; ?> / <?php echo $review['disagree_count']; ?></td>
+                                            <td>
+                                                <?php if ($review['comment_count'] > 0): ?>
+                                                    <a href="?view_dine_in_comments=<?php echo $review['id']; ?><?php echo $showDeleted ? '&show_deleted=1' : ''; ?>"><?php echo $review['comment_count']; ?></a>
+                                                <?php else: ?>
+                                                    <?php echo $review['comment_count']; ?>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?php echo formatDateTime($review['created_at']); ?></td>
+                                            <td>
+                                                <?php 
+                                                if ($review['is_deleted']) {
+                                                    echo '已删除';
+                                                } else {
+                                                    echo $review['is_visible'] ? '显示' : '隐藏';
+                                                }
+                                                ?>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <?php if (!$review['is_deleted']): ?>
+                                                        <a href="../view_dine_in_review.php?id=<?php echo $review['id']; ?>" class="btn btn-sm btn-info" target="_blank">查看</a>
+                                                        <?php if ($review['is_visible']): ?>
+                                                            <a href="?action=hide_dine_in&id=<?php echo $review['id']; ?>&type=dine_in<?php echo $showDeleted ? '&show_deleted=1' : ''; ?><?php echo $page > 1 ? '&page=' . $page : ''; ?>" class="btn btn-sm btn-warning" 
+                                                               onclick="return confirm('确定要隐藏这条评价吗？')">隐藏</a>
+                                                        <?php else: ?>
+                                                            <a href="?action=show_dine_in&id=<?php echo $review['id']; ?>&type=dine_in<?php echo $showDeleted ? '&show_deleted=1' : ''; ?><?php echo $page > 1 ? '&page=' . $page : ''; ?>" class="btn btn-sm btn-success">显示</a>
+                                                        <?php endif; ?>
+                                                        <a href="?action=delete_dine_in_review&id=<?php echo $review['id']; ?>&type=dine_in<?php echo $showDeleted ? '&show_deleted=1' : ''; ?><?php echo $page > 1 ? '&page=' . $page : ''; ?>" class="btn btn-sm btn-danger" 
+                                                           onclick="return confirm('确定要删除这条评价吗？')">删除</a>
+                                                    <?php else: ?>
+                                                        <a href="?action=restore_dine_in_review&id=<?php echo $review['id']; ?>&type=dine_in<?php echo $showDeleted ? '&show_deleted=1' : ''; ?><?php echo $page > 1 ? '&page=' . $page : ''; ?>" class="btn btn-sm btn-success" 
+                                                           onclick="return confirm('确定要恢复这条评价吗？')">恢复</a>
+                                                        <a href="?action=hard_delete_dine_in_review&id=<?php echo $review['id']; ?>&type=dine_in<?php echo $showDeleted ? '&show_deleted=1' : ''; ?><?php echo $page > 1 ? '&page=' . $page : ''; ?>" class="btn btn-sm btn-danger" 
+                                                           onclick="return confirm('确定要永久删除这条评价吗？此操作不可恢复！')">永久删除</a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    
+                                    <?php if (empty($dine_in_reviews)): ?>
+                                        <tr>
+                                            <td colspan="9" class="text-center">暂无评价数据</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                            
+                            <!-- 分页导航 -->
+                            <?php if (!empty($dine_in_reviews) && $totalPages > 1): ?>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-center">
+                                        <?php if ($page > 1): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?type=dine_in&page=1<?php echo $showDeleted ? '&show_deleted=1' : ''; ?>">首页</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?type=dine_in&page=<?php echo $page - 1; ?><?php echo $showDeleted ? '&show_deleted=1' : ''; ?>">上一页</a>
+                                            </li>
+                                        <?php endif; ?>
+                                        
+                                        <?php
+                                        // 显示页码，最多显示5个
+                                        $startPage = max(1, $page - 2);
+                                        $endPage = min($totalPages, $startPage + 4);
+                                        if ($endPage - $startPage < 4) {
+                                            $startPage = max(1, $endPage - 4);
+                                        }
+                                        
+                                        for ($i = $startPage; $i <= $endPage; $i++):
+                                        ?>
+                                            <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                                <a class="page-link" href="?type=dine_in&page=<?php echo $i; ?><?php echo $showDeleted ? '&show_deleted=1' : ''; ?>"><?php echo $i; ?></a>
+                                            </li>
+                                        <?php endfor; ?>
+                                        
+                                        <?php if ($page < $totalPages): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?type=dine_in&page=<?php echo $page + 1; ?><?php echo $showDeleted ? '&show_deleted=1' : ''; ?>">下一页</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?type=dine_in&page=<?php echo $totalPages; ?><?php echo $showDeleted ? '&show_deleted=1' : ''; ?>">末页</a>
+                                            </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </nav>
+                            <?php endif; ?>
                         <?php else: ?>
-                            <!-- 评价列表 -->
+                            <!-- 外卖评价列表 -->
                             <?php if (!empty($reviews)): ?>
                                 <div class="mb-3">
                                     <p class="text-muted">共 <?php echo $total; ?> 条评价，当前第 <?php echo $page; ?>/<?php echo $totalPages; ?> 页</p>

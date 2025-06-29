@@ -64,6 +64,40 @@ function initDatabase($db) {
         UNIQUE(review_id, voter_id)
     )');
     
+    // 聚餐评价表
+    $db->exec('CREATE TABLE IF NOT EXISTS dine_in_reviews (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        restaurant_name TEXT NOT NULL,
+        rating TEXT NOT NULL,
+        content TEXT NOT NULL,
+        agree_count INTEGER DEFAULT 0,
+        disagree_count INTEGER DEFAULT 0,
+        is_visible INTEGER DEFAULT 1,
+        is_deleted INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )');
+    
+    // 聚餐评论表
+    $db->exec('CREATE TABLE IF NOT EXISTS dine_in_comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        review_id INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (review_id) REFERENCES dine_in_reviews(id) ON DELETE CASCADE
+    )');
+    
+    // 聚餐投票表
+    $db->exec('CREATE TABLE IF NOT EXISTS dine_in_votes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        review_id INTEGER NOT NULL,
+        voter_id TEXT NOT NULL,
+        vote_type TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (review_id) REFERENCES dine_in_reviews(id) ON DELETE CASCADE,
+        UNIQUE(review_id, voter_id)
+    )');
+    
     // 访问统计表
     $db->exec('CREATE TABLE IF NOT EXISTS visitors (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
